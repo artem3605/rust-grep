@@ -1,35 +1,16 @@
-use std::env;
-use std::ffi::OsString;
-use std::fs;
-use std::io;
-use std::path::Path;
+mod cli;
+mod walk;
 
-fn ls(dir: &Path) -> io::Result<Vec<OsString>> {
-    let mut names = Vec::new();
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?; // Result<DirEntry> -> DirEntry
-        names.push(entry.file_name()); //OsString -> String
-    }
-    Ok(names)
-}
+use std::{env};
 
-fn main() -> io::Result<()> {
-    let mut args = env::args();
+fn main() -> std::io::Result<()> {
+    let config = cli::parse_args(env::args_os());
 
-    let _exe = args.next();
+    let walker = walk::Walker::new(config);
+    let paths = walker.run()?; // io::Result<Vec<PathBuf>>
 
-    let path = match args.next() {
-        Some(p) => p,
-        None => {
-            eprintln!("Usage: cargo run -- <path>");
-            std::process::exit(1);
-        }
-    };
-
-    let file_names = ls(Path::new(&path))?;
-
-    for name in file_names {
-        println!("{}", name.to_string_lossy());
+    for p in paths {
+        println!("{}", p.display());
     }
 
     Ok(())
